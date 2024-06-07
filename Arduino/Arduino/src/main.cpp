@@ -3,13 +3,17 @@
 
 // Constants and variables
 //
+const uint8_t Electromagnet_pin[2] = {SCL, SDA}; //J10
 int pinJ19 = A5;
 int pot;
 float angle;
+
 // put function declarations here:
 float readpot( int pin );
+void electromagnet_control( uint8_t state,  unsigned int duration );
 
 void setup() {
+  pinMode(Electromagnet_pin, OUTPUT);
   //BoardInit(); //faut trouver façon de just init le arduino X mais jsp programmer objet faque j'ai pas réussi
   Serial.begin(9600);
 }
@@ -40,5 +44,21 @@ float readpot( int pin ) {
   float offset_0 = 132;
   float angle = ((float)analogRead(pin) / 1023.0) * 265.0 - offset_0;
   return angle;
+
+}
+
+void electromagnet_control( uint8_t state,  unsigned long duration ) {
+  //Active ou non l'électroaimant
+  digitalWrite(Electromagnet_pin, state);
+
+  //Ecrit le state de l'électroaimant
+  if (state == HIGH) {
+      Serial.println("Electromagnet is ON");
+  } else {
+      Serial.println("Electromagnet is OFF");
+  }
+
+  //Durée de l'activation
+  delay(duration);
 
 }
