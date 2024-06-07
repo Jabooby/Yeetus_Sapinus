@@ -1,4 +1,5 @@
 
+
 # Installation d'application pour RPi
  - Pour GitHub desktop
 	- mettre le fichier terminant en ".deb" dans Downloads
@@ -12,10 +13,10 @@
 			- `sudo bluetoothctl`
 			- `agent on`
 			- `default agent`
-    			- `scan on`
+    		- `scan on`
 			- `devices`
-    			- `pair <MAC ADDRESS>`
+    		- `pair <MAC ADDRESS>`
 			- `connect <MAC ADDRESS>`
-    			- `trust <MAC ADDRESS>`
+    		- `trust <MAC ADDRESS>`
 			- `scan off`
-   			- `exit`
+			-  `exit`
