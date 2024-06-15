@@ -104,15 +104,14 @@ Variable       FRcx                % Force de réaction en x entre le sol et C
 Variable       FRcy                % Force de réaction en y entre le sol et C
 %Variable      FRdx                 % Force de réaction en x entre le sol et D
 Variable       FRdy                % Force de réaction en y entre le sol et D
-Variable       qC''                % Vitesse angulaire entre le corps A et la roue gauche
-Variable       qD''                % Vitesse angulaire entre le corps B et la roue droite
+Specified      qC''               % Vitesse angulaire entre le corps A et la roue gauche
 Variable       qP''                % Angle entre le corps A et le pendule
 Variable       Xai''               % Position en x de l'origine vers le pivot du pendule (Centrale Inertiel ?)
 Variable       Yai''               % Position en y de l'origine vers le pivot du pendule (Centrale Inertiel ?)
 
 % Connu, I think
 Constant       qB = 0 % Test fixe               % Angle entre le corps A et B (Moteur/encodeur)
-Constant       Tc = 0 N*m                 % Couple moteur sur la roue gauche
+Constant       Tc = 0.005 N*m                % Couple moteur sur la roue gauche
 
 Constant       Tp = 0.0 N*m                 % Couple causé par la friction au pivot du pendule
 Constant       Td = 0.0 N*m                 % Couple friction sur la roue droite
@@ -143,8 +142,8 @@ P.SetInertia(Pcm, IPxx, IPyy, IPzz) % Définit l'inertie du pendule
 A.RotateZ(N, qB/2)                   % Le corps A ne tourne pas initialement
 B.RotateNegativeZ(A, qB)                   % Le corps B ne tourne pas initialement
 C.RotateNegativeZ(A, qC)                   % La roue gauche tourne autour de l'axe Z
-D.RotateNegativeZ(B, qD)                   % La roue droite tourne autour de l'axe Z
-P.RotateZ(N, qP-90)                   % Le pendule tourne autour de l'axe Z
+D.RotateNegativeZ(N, 0)
+P.RotateZ(N, qP-pi/2)                   % Le pendule tourne autour de l'axe Z
 
 %--------------------------------------------------------------------
 % Cinématique de translation.
@@ -177,13 +176,12 @@ Ppre.Translate(Po, X_Po_To_Ppre*px> + Y_Po_To_Ppre*py>) % Translation du point d
 % Contraintes de mouvement (En roulement).
 MotionConstraint[1] = dt(qC'*Rc - Xai')  % Contrainte de la roue C avec la vitesse
 MotionConstraint[2] = dt(dt(dot(Ccm.GetPosition(No),ny>)))
-MotionConstraint[3] = dt(qD'*Rd - Xai')  % Contrainte de la roue D avec la vitesse
 
 %--------------------------------------------------------------------
 % Ajout des forces de contact et de distance pertinentes.
 System.AddForceGravity(-g*ny>)                       % Gravité appliquée à tout le système
 Cn.AddForce(FRcx*nx> + FRcy*ny>)                     % Force de contact entre le sol et la roue C
-Dn.AddForce(FRdx*nx>+FRdy*ny>)                                % Force de contact entre le sol et la roue D
+Dn.AddForce(FRdy*ny>)                                % Force de contact entre le sol et la roue D
 Ao.AddForce(Bo, FRx_b_a*nx> + FRy_b_a*ny>)           % Force d'action-réaction sur le centre de masse de la roue C du corps B
 Rac.AddForce(Ccm, FRx_c_a*nx> + FRy_c_a*ny>)         % Force d'action-réaction sur le centre de masse de la roue C
 Rbd.AddForce(Dcm, FRx_d_b*nx> + FRy_d_b*ny>)         % Force d'action-réaction sur le centre de masse de la roue D
@@ -192,7 +190,7 @@ Po.AddForce(Ao, FRx_p_a*nx> + FRy_p_a*ny>)           % Force d'action-réaction 
 %--------------------------------------------------------------------
 % Ajout des couples pertinents.
 A.AddTorque(B, TA_B*nz>)
-C.AddTorque(A, Tc*nz>)              % Couple moteur appliqué à la roue C
+C.AddTorque(A, -Tc*nz>)              % Couple moteur appliqué à la roue C
 D.AddTorque(B, Td*nz>)              % Couple de friction applique a la roue de droite
 P.AddTorque(A, Tp*nz>)              % Couple de friction appliqué au pendule
 
@@ -216,8 +214,7 @@ Dynamics[10] = Dot(Pendule.GetDynamics(), ny>)  % Équation dynamique du pendule
 Dynamics[11] = Dot(A.GetDynamics(Acm), nz>)  % Équation dynamique de rotation du corps A
 Dynamics[12] = Dot(B.GetDynamics(Bcm), nz>)  % Équation dynamique de rotation du corps B
 Dynamics[13] = Dot(C.GetDynamics(Ccm), nz>) % Équation dynamique de rotation de la roue C
-Dynamics[14] = Dot(D.GetDynamics(Dcm), nz>) % Équation dynamique de rotation de la roue D
-Dynamics[15] = Dot(Pendule.GetDynamics(Pcm), nz>) % Équation dynamique de rotation du pendule
+Dynamics[14] = Dot(Pendule.GetDynamics(Pcm), nz>) % Équation dynamique de rotation du pendule
 
 
 %--------------------------------------------------------------------
@@ -248,20 +245,20 @@ Input  qC = 0 deg,  qC' = 0 rad/sec                                             
 Input  Xai = 0 m, Xai' = 0 m/s
 Input  Yai = 0 m, Yai' = 0 m/s
 Input  qP = 0 deg, qP' = 0 rad/sec
-Input  qD = 0 deg, qD' = 0 rad/sec
+
 %--------------------------------------------------------------------
 %   List output quantities (e.g., for subsequent ODE command).
 OutputPlot t sec , FRdy N, FRcy N, FRy_b_a N, FRy_c_a N, FRy_p_a N, FRy_d_b N
 OutputPlot t sec , FRcx N
 OutputPlot t sec , qP deg
-OutputPlot t sec , qC deg
+OutputPlot t sec , qC' rad/s
 OutputPlot t sec , Xai'' m/s^2, Yai'' m/s^2
 %--------------------------------------------------------------------
 %   Set numerical integration parameters and solve ODEs.
 %   Alternative: Use the ODE() command to auto-generate MATLAB, C, or Fortran code such as
 %   ODE( Zero = 0,  listOfVariablesToSolve )  someFilename.m
 Input  tFinal = 10 sec,  tStep = 0.02 sec,  absError = 1.0E-07                                         % To do
-ODE([Dynamics ; MotionConstraint],   FRx_b_a, FRy_b_a, FRx_c_a, FRy_c_a, FRx_p_a, FRy_p_a, FRx_d_b, FRy_d_b, FRcx, FRcy, FRdy, qC'', qD'', qP'', Xai'', Yai'', TA_B, FRdx)
+ODE([Dynamics ; MotionConstraint],   FRx_b_a, FRy_b_a, FRx_c_a, FRy_c_a, FRx_p_a, FRy_p_a, FRx_d_b, FRy_d_b, FRcx, FRcy, FRdy, qP'', Xai'', Yai'', TA_B, qC'')
 %--------------------------------------------------------------------
 %   Record input together with responses.
 %Save  someFilename.html
