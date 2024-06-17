@@ -1,0 +1,283 @@
+% MotionGenesis file: Sapinus.txt
+% Copyright (c) 2024 Yeetus Sapinus.
+
+%--------------------------------------------------------------------
+% Déclaration des objets physiques.
+NewtonianFrame  N                 % Référence inertielle
+RigidBody       A                 % Corps principal fixe
+RigidBody       B                 % Corps principal mobile
+RigidBody       C                 % Roue arrière (fixe)
+RigidBody       D                 % Roue avant (mobile)
+RigidBody       P                 % Pendule
+Particle        Q1                % Masse ajoutée 1 au corps principal (facultative)
+Particle        Q2                % Masse ajoutée 2 au corps principal (facultative)
+Point           AI                % Point de la centrale inertiel
+Point           Cn(C), Dn(D)      % Points de contact entre le sol et les roues
+Point           Rac(A), Rbd(B)    % Pivots entre les roues et le corps principal A
+Particle        Ppre              % Point de préhension (sapin)
+System          Pendule(P, Ppre)  % Système pendule comprenant le corps P et le point de préhension
+
+%--------------------------------------------------------------------
+% Déclarations mathématiques.
+Constant       mA = 0.5 kg          % Masse du corps principal A
+Constant       mB = 0.2 kg          % Masse du corps principal B
+Constant       mC = 0.020 kg          % Masse de la roue gauche  0.020
+Constant       mD = 0.020 kg          % Masse de la roue droite
+Constant       mP = 0.2 kg          % Masse du pendule
+Constant       mPpre = 0.1 kg       % Masse de l'objet saisi
+Constant       mQ1 = 0 kg         % Masse ajoutée 1
+Constant       mQ2 = 0 kg         % Masse ajoutée 2
+
+Constant       IAxx = 0.001 kg*m^2    % Inertie du corps A autour de son centre de masse (axe xx)
+Constant       IAyy = 0.001 kg*m^2    % Inertie du corps A autour de son centre de masse (axe yy)
+Constant       IAzz = 403.03 kg*mm^2    % Inertie du corps A autour de son centre de masse (axe zz)
+
+Constant       IBxx = 0.001 kg*m^2    % Inertie du corps B autour de son centre de masse (axe xx)
+Constant       IByy = 0.001 kg*m^2    % Inertie du corps B autour de son centre de masse (axe yy)
+Constant       IBzz = 403.03 kg*mm^2    % Inertie du corps B autour de son centre de masse (axe zz)
+
+Constant       ICxx = 0.001 kg*m^2    % Inertie du corps C autour de son centre de masse (axe xx)
+Constant       ICyy = 0.001 kg*m^2    % Inertie du corps C autour de son centre de masse (axe yy)
+Constant       ICzz = 7270.62 g*mm^2    % Inertie du corps C autour de son centre de masse (axe zz)
+
+Constant       IDxx = 0.001 kg*m^2    % Inertie du corps D autour de son centre de masse (axe xx)
+Constant       IDyy = 0.001 kg*m^2    % Inertie du corps D autour de son centre de masse (axe yy)
+Constant       IDzz = 7270.62 g*mm^2    % Inertie du corps D autour de son centre de masse (axe zz)
+
+Constant       IPxx = 0.001 kg*m^2    % Inertie du corps P autour de son centre de masse (axe xx)
+Constant       IPyy = 0.001 kg*m^2    % Inertie du corps P autour de son centre de masse (axe yy)
+Constant       IPzz = 100 kg*m^2    % Inertie du corps P autour de son centre de masse (axe zz)
+
+
+
+Constant       X_AI_To_Ao = 0 mm  % Distance sur l'axe ax de la centrale inertiel vers le pivot entre A-B
+Constant       Y_AI_To_Ao = 0 mm  % Distance sur l'axe ay de la centrale inertiel vers le pivot entre A-B
+
+Constant       X_Ao_To_Acm = 152.40/2 mm  % Distance sur l'axe ax du pivot entre A-B vers le centre de masse du corps A
+Constant       Y_Ao_To_Acm = 0 mm  % Distance sur l'axe ay du pivot entre A-B vers le centre de masse du corps A
+
+Constant       X_Ao_To_Ccm = 152.40 mm  % Distance sur l'axe ax du pivot entre A-B vers le pivot de la roue gauche
+Constant       Y_Ao_To_Ccm = 0 mm  % Distance sur l'axe ay du pivot entre A-B vers le pivot de la roue gauche
+
+
+
+Constant       X_Bo_To_Bcm = 152.40/2 mm  % Distance sur l'axe bx du pivot entre A-B vers le centre de masse du corps B
+Constant       Y_Bo_To_Bcm = 0 mm  % Distance sur l'axe by du pivot entre A-B vers le centre de masse du corps B
+
+Constant       X_Bo_To_Dcm = 152.40 mm  % Distance sur l'axe bx du pivot entre A-B vers le pivot de la roue droite
+Constant       Y_Bo_To_Dcm = 0 mm  % Distance sur l'axe by du pivot entre A-B vers le pivot de la roue droite
+
+
+
+Constant       X_Po_To_Pcm = 200 mm  % Distance sur l'axe x du pivot vers le centre de masse du pendule
+Constant       Y_Po_To_Pcm = 0 mm  % Distance sur l'axe y du pivot vers le centre de masse du pendule
+
+Constant       X_Po_To_Ppre = 400 mm % Distance sur l'axe x du pivot vers le point de préhension
+Constant       Y_Po_To_Ppre = 0 mm % Distance sur l'axe y du pivot vers le point de préhension
+
+
+
+Constant       X_Ao_To_Q1 = 0 mm   % Distance sur l'axe x du pivot vers la particule Q1
+Constant       Y_Ao_To_Q1 = 0 mm   % Distance sur l'axe y du pivot vers la particule Q1
+
+Constant       X_Ao_To_Q2 = 0 mm   % Distance sur l'axe x du pivot vers la particule Q2
+Constant       Y_Ao_To_Q2 = 0 mm   % Distance sur l'axe y du pivot vers la particule Q2
+
+
+
+Constant       Rc = 30 mm           % Rayon de la roue C (positif)
+Constant       Rd = 30 mm           % Rayon de la roue D (positif)
+
+Constant       g = 9.8 N/kg        % Accélération due à la gravité
+
+
+Variable       TA_B
+Variable       FRx_b_a             % Force de réaction en x entre A et B
+Variable       FRy_b_a             % Force de réaction en y entre A et B
+Variable       FRx_c_a             % Force de réaction en x entre A et C
+Variable       FRy_c_a             % Force de réaction en y entre A et C
+Variable       FRx_p_a             % Force de réaction en x entre A et P
+Variable       FRy_p_a             % Force de réaction en y entre A et P
+Variable       FRx_d_b             % Force de réaction en x entre B et D
+Variable       FRy_d_b             % Force de réaction en y entre B et D
+Variable       FRcx                % Force de réaction en x entre le sol et C
+Variable       FRcy                % Force de réaction en y entre le sol et C
+%Variable      FRdx                 % Force de réaction en x entre le sol et D
+Variable       FRdy                % Force de réaction en y entre le sol et D
+
+Variable       qP''                % Angle entre le corps A et le pendule
+Variable       Xai''               % Position en x de l'origine vers le pivot du pendule (Centrale Inertiel ?)
+Variable       Yai''               % Position en y de l'origine vers le pivot du pendule (Centrale Inertiel ?)
+
+% Connu, I think
+Variable       qB = sin(2*t) % Test fixe               % Angle entre le corps A et B (Moteur/encodeur)
+Constant       qC = 5  rad/sec^2      % Vitesse angulaire entre le corps A et la roue gauche
+Variable       Tc              % Couple moteur sur la roue gauche
+
+Constant       Tp = 0.0 N*m                 % Couple causé par la friction au pivot du pendule
+Constant       Td = 0.0 N*m                 % Couple friction sur la roue droite
+
+%--------------------------------------------------------------------
+% Propriétés de masse et d'inertie.
+A.SetMass(mA)                      % Définit la masse du corps A
+B.SetMass(mB)                      % Définit la masse du corps B
+C.SetMass(mC)                      % Définit la masse du corps C
+D.SetMass(mD)                      % Définit la masse du corps D
+P.SetMass(mP)                      % Définit la masse du pendule
+Ppre.SetMass(mPpre)                % Définit la masse du point de préhension
+Q1.SetMass(mQ1)                    % Définit la masse de la particule Q1
+Q2.SetMass(mQ2)                    % Définit la masse de la particule Q2
+
+A.SetInertia(Acm, IAxx, IAyy, IAzz) % Définit l'inertie du corps A
+
+B.SetInertia(Bcm, IBxx, IByy, IBzz) % Définit l'inertie du corps B
+
+C.SetInertia(Ccm, ICxx, ICyy, ICzz) % Définit l'inertie du corps C
+
+D.SetInertia(Dcm, IDxx, IDyy, IDzz) % Définit l'inertie du corps D
+
+P.SetInertia(Pcm, IPxx, IPyy, IPzz) % Définit l'inertie du pendule
+
+%--------------------------------------------------------------------
+% Cinématique de rotation.
+A.RotateZ(N, qB/2)                   % Le corps A ne tourne pas initialement
+B.RotateNegativeZ(A, qB)                   % Le corps B ne tourne pas initialement
+%C.RotateNegativeZ(A, qC)                   % La roue gauche tourne autour de l'axe Z
+D.RotateNegativeZ(N, 0)
+P.RotateZ(N, qP-pi/2)                   % Le pendule tourne autour de l'axe Z
+
+
+C.SetAngularVelocity(N,-qC*cz>)
+
+
+
+%--------------------------------------------------------------------
+% Cinématique de translation.
+AI.Translate(No, Xai*nx> + Yai*ny>)
+Ao.Translate(AI, -X_AI_To_Ao*ax> + Y_AI_To_Ao*ay>)
+Acm.Translate(Ao, -X_Ao_To_Acm*ax> + Y_Ao_To_Acm*ay>)  % Translation du centre de masse A par rapport au pivot A
+Rac.Translate(Ao, -X_Ao_To_Ccm*ax> + Y_Ao_To_Ccm*ay>)  % Translation du pivot Rac par rapport au centre de masse de la roue C
+
+Bo.Translate(Ao, 0>)
+Bcm.Translate(Bo, X_Bo_To_Bcm*bx> + Y_Bo_To_Bcm*by>)  % Translation du centre de masse B par rapport au pivot B
+Rbd.Translate(Bo, X_Bo_To_Dcm*bx> + Y_Bo_To_Dcm*by>)  % Translation du pivot Rad par rapport au centre de masse de la roue D
+
+Ccm.Translate(Rac, 0>)  % Translation du centre de masse C par rapport au pivot A
+Dcm.Translate(Rbd, 0>)  % Translation du centre de masse D par rapport au pivot A
+
+
+Cn.Translate(Rac, -Rc*ny>)                  % Translation du point de contact Cn par rapport au centre de masse de la roue C
+Dn.Translate(Dcm, -Rd*ny>)                  % Translation du point de contact Dn par rapport au centre de masse de la roue D
+
+
+Q1.Translate(Ao, X_Ao_To_Q1*ax> + Y_Ao_To_Q1*ay>) % Translation de la particule Q1 par rapport à A
+Q2.Translate(Ao, X_Ao_To_Q2*ax> + Y_Ao_To_Q2*ay>) % Translation de la particule Q2 par rapport à A
+
+Po.Translate(Ao, 0>)                       % Translation du point d'origine du pendule par rapport à A
+Pcm.Translate(Po, X_Po_To_Pcm*px> + Y_Po_To_Pcm*py>)  % Translation du centre de masse du pendule par rapport au pivot A
+
+Ppre.Translate(Po, X_Po_To_Ppre*px> + Y_Po_To_Ppre*py>) % Translation du point de préhension du pendule par rapport à A
+
+%--------------------------------------------------------------------
+% Contraintes de mouvement (En roulement).
+MotionConstraint[1] = qC*Rc - dt(Xai')  % Contrainte de la roue C avec la vitesse
+MotionConstraint[2] = dt(dt(dot(Ccm.GetPosition(No),ny>)))
+
+%--------------------------------------------------------------------
+% Ajout des forces de contact et de distance pertinentes.
+System.AddForceGravity(-g*ny>)                       % Gravité appliquée à tout le système
+Cn.AddForce(FRcx*nx> + FRcy*ny>)                     % Force de contact entre le sol et la roue C
+Dn.AddForce(FRdy*ny>)                                % Force de contact entre le sol et la roue D
+Ao.AddForce(Bo, FRx_b_a*nx> + FRy_b_a*ny>)           % Force d'action-réaction sur le centre de masse de la roue C du corps B
+Rac.AddForce(Ccm, FRx_c_a*nx> + FRy_c_a*ny>)         % Force d'action-réaction sur le centre de masse de la roue C
+Rbd.AddForce(Dcm, FRx_d_b*nx> + FRy_d_b*ny>)         % Force d'action-réaction sur le centre de masse de la roue D
+Po.AddForce(Ao, FRx_p_a*nx> + FRy_p_a*ny>)           % Force d'action-réaction sur le pendule
+
+%--------------------------------------------------------------------
+% Ajout des couples pertinents.
+A.AddTorque(B, TA_B*nz>)
+C.AddTorque(A, -Tc*nz>)              % Couple moteur appliqué à la roue C
+D.AddTorque(B, Td*nz>)              % Couple de friction applique a la roue de droite
+P.AddTorque(A, Tp*nz>)              % Couple de friction appliqué au pendule
+
+%--------------------------------------------------------------------
+% Équations dynamiques de translation (F = m*a).
+% Pour une analyse statique, utiliser C.GetStatics() ou System.GetStatics().
+Dynamics[1] = Dot(A.GetDynamics(), nx>)  % Équation dynamique du corps A en direction x
+Dynamics[2] = Dot(A.GetDynamics(), ny>)  % Équation dynamique du corps A en direction y
+Dynamics[3] = Dot(B.GetDynamics(), nx>)  % Équation dynamique du corps B en direction x
+Dynamics[4] = Dot(B.GetDynamics(), ny>)  % Équation dynamique du corps B en direction y
+Dynamics[5] = Dot(C.GetDynamics(), nx>)  % Équation dynamique de la roue C en direction x
+Dynamics[6] = Dot(C.GetDynamics(), ny>)  % Équation dynamique de la roue C en direction y
+Dynamics[7] = Dot(D.GetDynamics(), nx>)  % Équation dynamique de la roue D en direction x
+Dynamics[8] = Dot(D.GetDynamics(), ny>)  % Équation dynamique de la roue D en direction y
+Dynamics[9] = Dot(Pendule.GetDynamics(), nx>)  % Équation dynamique du pendule en direction x
+Dynamics[10] = Dot(Pendule.GetDynamics(), ny>)  % Équation dynamique du pendule en direction y
+
+%--------------------------------------------------------------------
+% Équations dynamiques de rotation (M = DH/Dt + ...).
+% Pour une analyse statique, utiliser C.GetStatics(aboutPoint).
+Dynamics[11] = Dot(A.GetDynamics(Acm), nz>)  % Équation dynamique de rotation du corps A
+Dynamics[12] = Dot(B.GetDynamics(Bcm), nz>)  % Équation dynamique de rotation du corps B
+Dynamics[13] = Dot(C.GetDynamics(Ccm), nz>) % Équation dynamique de rotation de la roue C
+Dynamics[14] = Dot(Pendule.GetDynamics(Pcm), nz>) % Équation dynamique de rotation du pendule
+
+
+%--------------------------------------------------------------------
+%   Optional: Solve algebraic equations for list of unknowns.
+%   Efficient alternative: Delay this until the ODE command below.
+%Solve( [Dynamics ; MotionConstraint],   FRx_b_a, FRy_b_a, FRx_c_a, FRy_c_a, FRx_p_a, FRy_p_a, FRx_d_b, FRy_d_b, FRcx, FRcy, FRdx, FRdy, qC'', qD'', qP'', Xai'', Yai'')                                                             % To do
+%--------------------------------------------------------------------
+%   Power, work, and potential/kinetic energy calculations (if needed).
+%systemPower = System.GetPower()
+%Variable workDone' = systemPower
+%Input  workDone = 0 Joules        % Initial value of workDone.
+%KE = System.GetKineticEnergy()
+%PEgravity = System.GetForceGravityPotentialEnergy( -g*Ny>, No )
+%MechanicalEnergy = KE + PEgravity - workDone
+%--------------------------------------------------------------------
+%   Momentum calculations (if needed).
+%H> = System.GetAngularMomentum( aboutPoint )
+%L> = EvaluateToNumber( System.GetLinearMomentum() )
+%--------------------------------------------------------------------
+%   Other calculations (e.g., for output).
+%xQ = Dot(  Q.GetPosition(No),  Nx>  )
+%--------------------------------------------------------------------
+%   Provide expressions for specified quantities (if needed).
+%TA = 2*cos(pi*t) + 4*cos(pi*t)
+%--------------------------------------------------------------------
+%   Set initial values for variables (e.g., for subsequent ODE command).
+%Input  qC' = 5 rad/sec                                                                   % To do
+Input  Xai = 0 m, Xai' = 0 m/s
+Input  Yai = 0 m, Yai' = 0 m/s
+Input  qP = 0 deg, qP' = 0 rad/sec
+
+%--------------------------------------------------------------------
+%   List output quantities (e.g., for subsequent ODE command).
+OutputPlot t sec , FRdy N, FRcy N, FRy_b_a N, FRy_c_a N, FRy_p_a N, FRy_d_b N
+OutputPlot t sec , FRcx N
+OutputPlot t sec , qP deg
+OutputPlot t sec , qC rad/sec^2
+OutputPlot t sec , Xai'' m/s^2, Yai'' m/s^2
+OutputPlot t sec, Tc N*m, TA_B N*m
+
+%--------------------------------------------------------------------
+%   Set numerical integration parameters and solve ODEs.
+%   Alternative: Use the ODE() command to auto-generate MATLAB, C, or Fortran code such as
+%   ODE( Zero = 0,  listOfVariablesToSolve )  someFilename.m
+Input  tFinal = 10 sec,  tStep = 0.02 sec,  absError = 1.0E-07                                         % To do
+ODE([Dynamics ; MotionConstraint],   FRx_b_a, FRy_b_a, FRx_c_a, FRy_c_a, FRx_p_a, FRy_p_a, FRx_d_b, FRy_d_b, FRcx, FRcy, FRdy, qP'', Xai'', Yai'', TA_B, Tc)
+%--------------------------------------------------------------------
+%   Record input together with responses.
+%Save  someFilename.html
+%Quit
+
+A.GetResultantForce()
+B.GetResultantForce()
+C.GetResultantForce()
+D.GetResultantForce()
+P.GetResultantForce()
+
+Pendule.GetDynamics()
+
+System.GetResultantForce()
