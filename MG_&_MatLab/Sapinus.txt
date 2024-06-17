@@ -111,7 +111,7 @@ Variable       Yai''               % Position en y de l'origine vers le pivot du
 
 % Connu, I think
 Constant       qB = 0 % Test fixe               % Angle entre le corps A et B (Moteur/encodeur)
-Constant       Tc = 0.005 N*m                % Couple moteur sur la roue gauche
+Constant       Tc = 0.00 N*m                % Couple moteur sur la roue gauche
 
 Constant       Tp = 0.0 N*m                 % Couple causé par la friction au pivot du pendule
 Constant       Td = 0.0 N*m                 % Couple friction sur la roue droite
@@ -263,13 +263,3 @@ ODE([Dynamics ; MotionConstraint],   FRx_b_a, FRy_b_a, FRx_c_a, FRy_c_a, FRx_p_a
 %   Record input together with responses.
 %Save  someFilename.html
 %Quit
-
-A.GetResultantForce()
-B.GetResultantForce()
-C.GetResultantForce()
-D.GetResultantForce()
-P.GetResultantForce()
-
-Pendule.GetDynamics()
-
-System.GetResultantForce()
