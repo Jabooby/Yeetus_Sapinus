@@ -1,7 +1,4 @@
-/*
-Exemple de librairie pouvant etre ajoute au projet
-*/
-#include <libExample.h>
+#include <classes.h>
 
 // Class constructor
 MyClass::MyClass(){

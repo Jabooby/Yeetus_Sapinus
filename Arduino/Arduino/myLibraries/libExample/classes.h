@@ -1,12 +1,6 @@
-/*
-Projet S1 2019
-Exemple de librairie pouvant etre ajoute au projet
-@author Jean-Samuel Lauzon
-@version 1.0 22/05/2019
-*/
 
-#ifndef LibExample_H_
-#define LibExample_H_
+#ifndef classes_h_
+#define classes_h_
 
 class MyClass
 {
@@ -23,4 +17,5 @@ class MyClass
     int myInt = 0;
     bool myBool = false;
 };
-#endif // LibExample_H_
+
+#endif classes_h_
