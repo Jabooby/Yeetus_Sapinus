@@ -8,6 +8,8 @@
 #define GAUCHE 0
 #define DROITE 1
 
+#define MAX_MOTOR_SPEED 1
+#define MIN_MOTOR_SPEED -1
 
 //#include <main_header.h>
 
@@ -48,6 +50,7 @@ class Moteur
 	void setSpeed(float Speed);
 	void setID(uint8_t ID);
 	int getPulse();
+	void resetEncodeur();
 	
 	private:
 
@@ -58,63 +61,68 @@ class Moteur
 
 class Pendule
 {
-// 	public:
+	public:
 	
-    // Pendule(ArduinoX* AX_);
-    // ~Pendule();
+    Pendule(ArduinoX* AX_);
+    ~Pendule();
 
-// 	float getAngle();
-// 	bool getDirection();
-// 	void updateAngleOk();
-// 	bool getAngleOk();
+	float getAngle();
+	bool getDirection();
+	void updateAngleOk();
+	bool getAngleOk();
 
-// 	private:
+	private:
 
-//  ArduinoX* ptrArduino;
-// 	float AngleMax;
-// 	bool direction;
-// 	bool AngleOk;
+    ArduinoX* ptrArduino;
+	float AngleMax;
+	bool direction;
+	bool AngleOk;
 };
 
 //classes deplacement
 
-class Deplacement
-{
-    public:
+// class Deplacement
+// {
+//     public:
 
-    Deplacement(Moteur* ptrX, Moteur* ptrY, Pendule* ptr_potentio, PID* ptr_pidx, PID* ptr_pidy, PID* ptr_pidq);
-    ~Deplacement();
+//     Deplacement(Moteur* ptrX, Moteur* ptrY, Pendule* ptr_potentio, PID* ptr_pidx, PID* ptr_pidy, PID* ptr_pidq);
+//     ~Deplacement();
 
-    void goHome();
-    void goDepot();
+//     // void init(double p, double i, double d, double *MeasurementFunc, double* CommandFunc, int periode, double epsilon);
 
-    void uptadePID();
-    static double getPositionX();
-    static double getPositionY();
-    void Stabilisation();
+//     void goHome();
+//     void goDepot();
 
-    private:
+//     void goUp();
 
-    static void uptadeX(double errorX);
-    static void uptadeY(double errorY);
-    float posX;
-    float posY;
-    bool AngleOk;
-    float toleranceX;
+//     void uptadePID();
+//     double getPositionX();
+//     double getPositionY();
+//     void Stabilisation();
+    
 
-    static Moteur* moteurDeplacement;
-    static Moteur* moteurElevation;
+//     private:
 
-    // Calcul test;
+//     void uptadeX(double errorX);
+//     void uptadeY(double errorY);
+//     float posX;
+//     float posY;
+//     bool AngleOk;
+//     float toleranceX;
 
-    PID* pidX_;
-    PID* pidY_;
-    PID* pidQ_;
+//     Moteur* moteurDeplacement;
+//     Moteur* moteurElevation;
 
-    Pendule* potentio;
+//     // Calcul test;
+
+//     PID* pidX_;
+//     PID* pidY_;
+//     PID* pidQ_;
+
+//     Pendule* potentio;
 
 
-};
+// };
 
 
 
