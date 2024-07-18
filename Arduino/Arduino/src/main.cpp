@@ -112,3 +112,20 @@ void PIDcommand(double cmd){
 void PIDgoalReached(){
   // To do
 }
+
+double getPositionX()
+{
+    int tmpPulse;
+    float tmpDistance;
+    float diametreRoue = 30;
+    int nbPulseTour = 64*19;
+    float distancePulse;
+
+    tmpPulse = Moteur_Deplacement.getPulse();
+    
+    distancePulse = (diametreRoue*PI)/nbPulseTour;
+
+    tmpDistance = tmpPulse*distancePulse;
+
+    return tmpDistance;
+}

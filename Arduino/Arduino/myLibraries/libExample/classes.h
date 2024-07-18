@@ -55,49 +55,13 @@ class Moteur
 	uint8_t ID;
 };
 
-// //classes deplacement
 
-// /*class Deplacement
-// {
-//     public:
-
-//     Deplacement(ArduinoX* ptr);
-//     ~Deplacement();
-
-//     void goHome();
-//     void goDepot();
-
-//     void uptadePID();
-//     float getPositionX();
-//     float getPositionY();
-//     void Stabilisation();
-
-//     private:
-       
-//     ArduinoX* ptrAx; // Pour les moteurs
-
-//     void uptadeX(double errorX);
-//     void uptadeY(double errorY);
-//     float posX;
-//     float posY;
-//     bool AngleOk;
-//     float toléranceX;
-
-//     Moteur* moteurDeplacement;
-//     Moteur* moteurElevation;
-
-//     PID* pidX_;
-//     PID* pidY_;
-
-
-// }
-
-// class Pendule
-// {
+class Pendule
+{
 // 	public:
 	
-//     Pendule(ArduinoX* AX_);
-//     ~Pendule();
+    // Pendule(ArduinoX* AX_);
+    // ~Pendule();
 
 // 	float getAngle();
 // 	bool getDirection();
@@ -110,6 +74,48 @@ class Moteur
 // 	float AngleMax;
 // 	bool direction;
 // 	bool AngleOk;
-// };*/
+};
+
+//classes deplacement
+
+class Deplacement
+{
+    public:
+
+    Deplacement(Moteur* ptrX, Moteur* ptrY, Pendule* ptr_potentio, PID* ptr_pidx, PID* ptr_pidy, PID* ptr_pidq);
+    ~Deplacement();
+
+    void goHome();
+    void goDepot();
+
+    void uptadePID();
+    static double getPositionX();
+    static double getPositionY();
+    void Stabilisation();
+
+    private:
+
+    static void uptadeX(double errorX);
+    static void uptadeY(double errorY);
+    float posX;
+    float posY;
+    bool AngleOk;
+    float toleranceX;
+
+    static Moteur* moteurDeplacement;
+    static Moteur* moteurElevation;
+
+    // Calcul test;
+
+    PID* pidX_;
+    PID* pidY_;
+    PID* pidQ_;
+
+    Pendule* potentio;
+
+
+};
+
+
 
 #endif //CLASSE_H

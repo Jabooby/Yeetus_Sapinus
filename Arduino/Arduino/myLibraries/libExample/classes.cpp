@@ -92,25 +92,25 @@ void Moteur::setID(uint8_t ID)
 // Getters
 int Moteur::getPulse()
 {
-	return ptrAdruino->readResetEncoder(ID);
+	return ptrAdruino->readResetEncoder(ID); // WF : Pas sur qu'on veut read reset dans le cas du PID
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Constructeur
-//Pendule::Pendule()
-//{
-//	AngleMax = 0; // Valeur maximale à laquelle le pendule s'est déplacé.
-//	direction = GAUCHE;
-//	AngleOk = 1; // Angle Valide
+// Pendule::Pendule()
+// {
+// 	AngleMax = 0; // Valeur maximale à laquelle le pendule s'est déplacé.
+// 	direction = GAUCHE;
+// 	AngleOk = 1; // Angle Valide
 //  ptrAdruino = AX_;
-//}
+// }
 
 // Destructeur
-//Pendule::~Pendule()
-//{
+// Pendule::~Pendule()
+// {
 
-//}
+// }
 
 // Getters
 //float Pendule::getAngle()
@@ -171,28 +171,35 @@ int Moteur::getPulse()
 
 /////////////////////////////////////////////////////////////////////////////
 
-/*Deplacement::Deplacement(Moteur* ptrX, Moteur* ptrY, PID* ptrPIDX, PID* ptrPIDY)
+Deplacement::Deplacement(Moteur* ptrX, Moteur* ptrY, Pendule* ptr_potentio, PID* ptr_pidx, PID* ptr_pidy, PID* ptr_pidq)
 {
     moteurDeplacement = ptrX;
     moteurElevation = ptrY;
-    pidX_ = ptrPIDX;
-    pidY_ = ptrPIDY;
+    potentio = ptr_potentio;
 
-    pidX_->setGains(0,0,0,0)
+    pidX_ = ptr_pidx;
+    pidY_ = ptr_pidy;
+    pidQ_ = ptr_pidq;
+
+    pidX_->setGains(27,1.5,0);
     pidX_->setMeasurementFunc(getPositionX);
     pidX_->setCommandFunc(uptadeX);
+    pidX_->setPeriod(200); // JSP a tester
+    pidX_->setEpsilon(0.001); // Basically c la tolerance pour savoir si le PID est at goal
 
 
-    pidY_->setGains(0,0,0,0)
+    pidY_->setGains(800,300,12);
+    pidY_->setMeasurementFunc(getPositionY);
+    pidY_->setCommandFunc(uptadeY);
+    pidY_->setPeriod(200); // JSP a tester
+    pidY_->setEpsilon(0.001); // Basically c la tolerance pour savoir si le PID est at goal
 
-    // // Initialisation du PID 
-  // pid_.setGains(0.25,0.1 ,0);
-  // // Attache des fonctions de retour
-  // pid_.setMeasurementFunc(PIDmeasurement);
-  // pid_.setCommandFunc(PIDcommand);
-  // pid_.setAtGoalFunc(PIDgoalReached);
-  // pid_.setEpsilon(0.001);
-  // pid_.setPeriod(200);
+    // pidQ_->setGains(400,15,20);
+    // pidQ_->setMeasurementFunc(getPositionY);
+    // pidQ_->setCommandFunc(uptadeY);
+    // pidQ_->setPeriod(200); // JSP a tester
+    // pidQ_->setEpsilon(0.001); // Basically c la tolerance pour savoir si le PID est at goal
+
 }
 
 Deplacement::~Deplacement()
@@ -204,21 +211,23 @@ void Deplacement::goHome()
 {
     posX = 0; // A tester mm
     posY = 0; // A tester mm
+    pidX_->setGoal(posX);
+    pidX_->enable();
 }
 
 void Deplacement::goDepot()
 {
     posX = 100; // A tester mm
-    posY = 100; // A tester mm
+    posY = 0; // A tester mm
 }
 
 void Deplacement::uptadePID()
 {
-    uptadeX();
-    uptadeY();
+    pidX_->run();
+    pidY_->run();
 }
 
-float Deplacement::getPositionX()
+double Deplacement::getPositionX()
 {
     int tmpPulse;
     float tmpDistance;
@@ -230,26 +239,49 @@ float Deplacement::getPositionX()
     
     distancePulse = (diametreRoue*PI)/nbPulseTour;
 
-    tmpDistance = tmpPulse*nbPulseTour;
+    tmpDistance = tmpPulse*distancePulse;
 
     return tmpDistance;
 }
 
-float Deplacement::getPositionY() // Trouver relation angle distance y
+double Deplacement::getPositionY() // Trouver relation angle distance y
 {
+    double longeur_corp_A = 152.40; // mm
+    double longeur_corp_B = 152.40; // mm
+
+
     int tmpPulse;
-    float tmpDistance;
-    float diametreRoue = 30;
-    int nbPulseTour = 3200;
-    float distancePulse;
+    int nbPulseTour = 64*50;
 
-    tmpPulse = moteurDeplacement->getPulse();
-    
-    distancePulse = (diametreRoue*PI)/nbPulseTour;
+    double anglePulse;
+    double angle;
+    double angleA;
+    double angleC;
+    double hauteur;
+    double loi_cosinus;
+    int signe = 1;
 
-    tmpDistance = tmpPulse*nbPulseTour;
+    tmpPulse = moteurElevation->getPulse();
 
-    return tmpDistance;
+    anglePulse = (2*PI)/nbPulseTour; // Manque gear ratio peut être
+
+    angle = anglePulse*tmpPulse;
+
+    if(angle < 0) // Permet l'inversion de y
+    {
+        angle *= -1;
+        signe = -1;
+    }
+
+    angleC = PI-angle;
+
+    loi_cosinus = sqrt((longeur_corp_A * longeur_corp_A) + (longeur_corp_B * longeur_corp_B) -2 * longeur_corp_A * longeur_corp_B * cos(angleC)); // Donne longeur
+
+    angleA = asin((sin(angleC)/loi_cosinus)*longeur_corp_A);
+
+    hauteur = longeur_corp_A*sin(angleA)*signe;
+
+    return hauteur;
 }
 
 void Deplacement::Stabilisation()
@@ -259,16 +291,11 @@ void Deplacement::Stabilisation()
 
 void Deplacement::uptadeX(double errorX)
 {
-    moteurDeplacement->setSpeed(errorX)
+    moteurDeplacement->setSpeed(errorX);
 }
 
 void Deplacement::uptadeY(double errorY)
 {
-    moteurElevation->setSpeed(errorY)
+    moteurElevation->setSpeed(errorY);
 }
-
-
-*/
-
-
 
