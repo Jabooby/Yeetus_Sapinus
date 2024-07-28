@@ -3,6 +3,10 @@
 
 //var globales
 int choix = 0;
+double SpeedX = 0;
+double SpeedQ = 0;
+bool QEnable = false;
+bool XEnable = false;
 
 // Fonctions pour le PID
 double PIDmeasurement();
@@ -16,6 +20,10 @@ double getPositionX();
 void uptadeX(double commande);
 void PIDXgoalReached();
 
+double GetAngle();
+void uptadeQ(double commande);
+void PIDQgoalReached();
+
 // Creation objets
 ArduinoX* AX_ = new ArduinoX;                       // objet arduinoX
 MegaServo* servo_ = new MegaServo;                   // objet servomoteur
@@ -27,7 +35,7 @@ PID* pidQ_ = new PID;
 Pince* gripper = new Pince(servo_);
 Moteur* Moteur_Deplacement = new Moteur(AX_, 0);
 Moteur* Moteur_Elevation = new Moteur(AX_, 1);
-//Pendule* Pendule_ = new Pendule(AX_);
+Pendule* Pendule_ = new Pendule(AX_);
 //moteur deplacement();
 
 // Deplacement robot(Moteur_Deplacement, Moteur_Elevation, Pendule_, pidX_, pidY_, pidQ_);
@@ -64,16 +72,26 @@ void setup() {
   pidY_->setPeriod(10);
 
 
-  pidX_->setGains(0.005, 0,  0);
+  pidX_->setGains(0.005, 0.0,  0.0); // Will 28 juillet : C'est pas parfait on dirait aussi qu'il manque de friction lorsqu'aucune charge n'est mise
   pidX_->setMeasurementFunc(getPositionX);
   pidX_->setCommandFunc(uptadeX);
   pidX_->setAtGoalFunc(PIDXgoalReached);
-  pidX_->setEpsilon(8);
-  pidX_->setPeriod(100);
+  pidX_->setEpsilon(5);
+  pidX_->setPeriod(10);
+
+  pidQ_->setGains(0.015, 0,  0);
+  pidQ_->setMeasurementFunc(GetAngle);
+  pidQ_->setCommandFunc(uptadeQ);
+  pidQ_->setAtGoalFunc(PIDQgoalReached);
+  pidQ_->setEpsilon(5);
+  pidQ_->setPeriod(10);
 
   pidX_->enable();
   pidY_->enable();
-  choix = 3;
+  pidQ_->enable();
+  QEnable = true;
+  XEnable = true;
+  choix = 7;
 }
 
 /* Boucle principale (infinie)*/
@@ -125,7 +143,7 @@ void loop() {
     //Serial.print("\n ---- JE SUIS DANS CASE 5-----\n");
     //Serial.print("\n ---- TEST PID  DEPLACEMENT-----\n");
 
-    pidX_->setGoal(300);
+    pidX_->setGoal(500);
     pidY_->setGoal(40);  
 
     gripper->prendre();
@@ -142,6 +160,39 @@ void loop() {
     break;
 
 
+  case 7:
+    Serial.print("\n ---- JE SUIS DANS CASE 7-----\n");
+    
+    pidY_->setGoal(40);
+    pidQ_->setGoal(0);
+    pidX_->setGoal(0);
+
+
+    if(fabs(Pendule_->getAngle()) > 5 && !QEnable)
+    {
+      pidQ_->enable();
+      QEnable = true;
+    }
+
+    if(fabs(getPositionX()) > 10 && !XEnable)
+    {
+      pidX_->enable();
+      XEnable = true;
+    }
+
+    break;
+
+  case 8:
+  Serial.print("\n ---- JE SUIS DANS CASE 8-----\n");
+
+  Serial.print(GetAngle());
+
+  Serial.print("\n");
+
+  delay(1000);
+
+  break;
+
   default:
     Serial.print("choix invalide\n");
     break;
@@ -150,6 +201,7 @@ void loop() {
  
  pidY_->run();
  pidX_->run();
+ pidQ_->run();
         
 }
 
@@ -261,15 +313,24 @@ void uptadeX(double commande)
     // Serial.print("commande::  ");
     // Serial.print(commande);
     // Serial.print("\n");
-    Moteur_Deplacement->setSpeed(commande);
+    SpeedX = commande;
+
+    double Combine = SpeedX + SpeedQ;
+
+    Moteur_Deplacement->setSpeed(Combine);
 }
 
 void PIDXgoalReached()
 {
-    Moteur_Deplacement->setSpeed(0);
+    
     // Serial.print("\n ---- PID_X GOAL REACHED -----\n");
- 
+
+    SpeedX = 0;
+    double Combine = SpeedX + SpeedQ;
+
+    Moteur_Deplacement->setSpeed(Combine);
     pidX_->disable();
+    XEnable = false;
 
     if (choix == 5){
       choix = 6 ;
@@ -288,11 +349,74 @@ void PIDXgoalReached()
 
     // pidX_->enable();
 
-   
-  
-
 }
 
 
+double GetAngle()
+{
+  double longeur_corp_A = 152.0; // mm
+  double longeur_corp_B = 152.0; // mm
 
 
+  int tmpPulse;
+  int nbPulseTour = 64*50*2;
+
+  double anglePulse;
+  double angle;
+  double angleA;
+  double angleC;
+  double loi_cosinus;
+
+  tmpPulse = Moteur_Elevation->getPulse();
+
+  anglePulse = (2*PI)/nbPulseTour;
+
+  angle = anglePulse*tmpPulse;
+
+  angleC = PI-angle;
+
+  loi_cosinus = sqrt((longeur_corp_A * longeur_corp_A) + (longeur_corp_B * longeur_corp_B) -2 * longeur_corp_A * longeur_corp_B * cos(angleC)); // Donne longeur
+
+  angleA = asin(((sin(angleC))*longeur_corp_A)/loi_cosinus);
+
+  // Partie pour angle
+
+  double True_angleA;
+  double angleA_2;
+  double Rayon_roue = (62.75/2)-8.75;
+  double Rayon_bearing = 12.7/2;
+  double anglePendule;
+
+  angleA_2 = asin((Rayon_roue-Rayon_bearing)/loi_cosinus);
+
+  True_angleA = (angleA-angleA_2)*180/PI;
+
+  anglePendule =  True_angleA - Pendule_->getAngle()-5;
+
+  return anglePendule;
+
+
+}
+
+void uptadeQ(double commande)
+{
+  commande = commande; // Strange un bout fallait que sa soit inverser mais maintenant non
+  SpeedQ = commande;
+
+  double Combine = SpeedQ + SpeedX;
+
+  Moteur_Deplacement->setSpeed(Combine);
+}
+
+void PIDQgoalReached()
+{
+    
+  // Serial.print("\n ---- PID_X GOAL REACHED -----\n");
+  SpeedQ = 0;
+  double Combine = SpeedX + SpeedQ;
+
+  Moteur_Deplacement->setSpeed(Combine);
+  QEnable = false;
+  pidQ_->disable();
+
+}

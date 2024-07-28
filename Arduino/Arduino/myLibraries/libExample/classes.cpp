@@ -110,75 +110,73 @@ int Moteur::getPulse()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// // Constructeur
-// Pendule::Pendule(ArduinoX* AX_)
-// {
-// 	AngleMax = 0; // Valeur maximale à laquelle le pendule s'est déplacé.
-// 	direction = GAUCHE;
-// 	AngleOk = 1; // Angle Valide
-//     ptrArduino = AX_;
-// }
+// Constructeur
+Pendule::Pendule(ArduinoX* AX_)
+{
+	AngleMax = 0; // Valeur maximale à laquelle le pendule s'est déplacé.
+	direction = GAUCHE;
+	AngleOk = 1; // Angle Valide
+    ptrArduino = AX_;
+}
 
-// // Destructeur
-// Pendule::~Pendule()
-// {
+// Destructeur
+Pendule::~Pendule()
+{
 
-// }
+}
 
-// // Getters
-// float Pendule::getAngle()
-// {
+// Getters
+float Pendule::getAngle()
+{
 
-// 	// int tmp_angle = analogRead(A8, A9); // J20
+	float offset_0 = 265.0/2;
+    float angle = ((float)analogRead(A5) / 1023.0) * 265.0 - offset_0;
+    return -angle;
+}
 
-// 	// if(tmp_angle > AngleMax){
-// 	// 	AngleMax = tmp_angle;
-// 	// }
-
-// 	// return tmp_angle;
-// }
-
-// bool Pendule::getDirection()
-// {
-// 	int i = 0;
+bool Pendule::getDirection()
+{
+	int i = 0;
 	
-// 	while(i == 0){
-// 		int tmp_angle = Pendule::getAngle();
+	while(i == 0){
+		int tmp_angle = Pendule::getAngle();
 
-// 		if(tmp_angle < 0){
-// 			if(direction = DROITE)
-// 			{
-// 				AngleMax = 0;
-// 			}
-// 			direction = GAUCHE;
-// 			return GAUCHE;
-// 		}
-// 		else if(tmp_angle > 0){
-// 			if(direction = GAUCHE)
-// 			{
-// 				AngleMax = 0;
-// 			}
-// 			direction = DROITE;
-// 			return DROITE;
-// 		}
-// 	}
-// }
+		if(tmp_angle < 0){
+			if(direction == DROITE)
+			{
+				AngleMax = 0;
+			}
+			direction = GAUCHE;
+			return GAUCHE;
+		}
+		else if(tmp_angle > 0){
+			if(direction == GAUCHE)
+			{
+				AngleMax = 0;
+			}
+			direction = DROITE;
+			return DROITE;
+		}
+	}
 
-// void Pendule::updateAngleOk()
-// {
-// 	if(abs(AngleMax) <= 5){ // Déterminer la tolérance que l'on accepte
-// 		AngleOk = 1;
-// 	}
-// 	else{
-// 		AngleOk = 0;
-// 	}
-// }
+    return 0;
+}
+
+void Pendule::updateAngleOk()
+{
+	if(abs(AngleMax) <= 5){ // Déterminer la tolérance que l'on accepte
+		AngleOk = 1;
+	}
+	else{
+		AngleOk = 0;
+	}
+}
 
 
-// bool Pendule::getAngleOk()
-// {
-// 	return AngleOk;
-// }
+bool Pendule::getAngleOk()
+{
+	return AngleOk;
+}
 
 
 
