@@ -1,7 +1,13 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
-// #include <ArduinoJson.h>
+#include <ArduinoJson.h>
+
+void sendMsg();
+
+void readMsg();
+
+// Useless stuff here ////////////////////////////////////////////////
 // #include <LibS3GRO.h>
 
 // #define BAUD            115200      // Frequence de transmission serielle
@@ -31,9 +37,6 @@
 
 // void timerCallback();
 
-// void sendMsg();
-
-// void readMsg();
 
 
 #endif //CLASSE_H
