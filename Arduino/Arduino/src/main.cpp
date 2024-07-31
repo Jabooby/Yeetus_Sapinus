@@ -18,6 +18,9 @@ unsigned long time;
 bool setup_angle = false;
 double offset_angle = 0;
 unsigned long delais_communication = 0;
+
+//variables qui sont reçues
+char state[10] = "Stop"; // ="start" ou ="stop"
  
 //debug variables
 unsigned long temps_print = 0;
@@ -102,6 +105,18 @@ void setup() {
   pidQ_->setPeriod(10);
 
   gripper->depot();
+
+  while(strcmp(state, "Start") != 0)
+  {
+    time = millis();
+    readMsg();
+    // envoie donnee de temps en temps 
+    if ( time > (delais_communication + 100)){
+      communicate();
+      delais_communication = time;
+    }
+  }
+  caseActif = 22;
 
 }
 
@@ -465,6 +480,25 @@ void loop() {
 
   case 21:
     // case vide pour test de comm
+    pidX_->disable();
+    pidY_->disable();
+    pidQ_->disable();
+    SpeedX = 0;
+    SpeedQ = 0;
+    QEnable = false;
+    XEnable = false;
+    setup_angle = false;
+    offset_angle = 0;
+    Moteur_Elevation->resetEncodeur();
+    Moteur_Deplacement->resetEncodeur();
+    if(strcmp(state, "Start") == 0)
+    {
+      caseActif = 22; //à mettre n'importe quel case pour redémarrer le tout
+    }
+  break;
+
+  case 22:
+    // case vide pour test de comm
   break;
 
 
@@ -659,6 +693,10 @@ void loop() {
   if ( time > (delais_communication + 100)){
     communicate();
     delais_communication = time;
+  }
+  if(strcmp(state, "Start") != 0)
+  {
+    caseActif = 21;
   }
 }
 
@@ -906,8 +944,7 @@ bool shouldRead;
 "positionY" -> La position verticale du robot
 */
  
-//variables qui sont reçues
-JsonVariant state; // ="start" ou ="stop"
+
  
 bool commandeManuelle; // =1 ou =0 pour si on est en mode manuel ou pas
 JsonVariant goalManuel; // ="droite" ou = "fermerPince" ou ="goHome" ou ="goDepot" ou ...
@@ -943,44 +980,43 @@ void sendMsg(){
 void readMsg(){
   // Lecture du message Json
   StaticJsonDocument<500> doc;
-  JsonVariant parse_msg;
- 
-  // Lecture sur le port Seriel
-  DeserializationError error = deserializeJson(doc, Serial);
-  // Lorsque shouldComm est à 1, call communication
- 
-  // Si erreur dans le message
-  if (error) {
-    // Serial.print("deserialize() failed: ");
-    // Serial.println(error.c_str());
-    return;
+  
+  // Check if serial data is available
+  if (Serial.available() > 0) {
+    // Read the incoming JSON data from Serial
+    DeserializationError error = deserializeJson(doc, Serial);
+    
+    // Si erreur dans le message
+    if (error) {
+      //Serial.print("deserialize() failed: ");
+      //Serial.println(error.c_str());
+      return;
+    }
+
+    // Analyse des éléments du message
+    // MODIFIER ICI : Ce qu'on veut recevoir par json
+    if (doc.containsKey("state")) {
+      const char* stateValue = doc["state"];
+      strcpy(state, stateValue); // Copy the state value to the state variable
+    }
+
+    if (doc.containsKey("setGoal")) {
+      // Uncomment and modify the code according to how you handle pid
+      // pid_.disable();
+      // pid_.setGains(doc["setGoal"][0], doc["setGoal"][1], doc["setGoal"][2]);
+      // pid_.setEpsilon(doc["setGoal"][3]);
+      // pid_.setGoal(doc["setGoal"][4]);
+      // pid_.enable();
+    }
+
+    if (doc.containsKey("commandeManuelle")) {
+      commandeManuelle = doc["commandeManuelle"];
+    }
+
+    if (doc.containsKey("goalManuel")) {
+      goalManuel = doc["goalManuel"];
+    }
+
+    shouldRead = false; // Example to indicate reading is done
   }
-  // Analyse des éléments du message
-  // MODIFIER ICI : Ce qu'on veut recevoir par json
-   parse_msg = doc["state"];
-  if(!parse_msg.isNull()){
-     state = doc["state"];
-  }
- 
-  // À edit selon la façon dont le pid est fait
-   parse_msg = doc["setGoal"];
-  if(!parse_msg.isNull()){
-    //pid_.disable();
-    //pid_.setGains(doc["setGoal"][0], doc["setGoal"][1], doc["setGoal"][2]);
-    //pid_.setEpsilon(doc["setGoal"][3]);
-    //pid_.setGoal(doc["setGoal"][4]);
-    //pid_.enable();
-  }
- 
-   parse_msg = doc["commandeManuelle"];
-  if(!parse_msg.isNull()){
-     commandeManuelle = doc["commandeManuelle"];
-  }
- 
-   parse_msg = doc["goalManuel"];
-  if(!parse_msg.isNull()){
-     goalManuel = doc["goalManuel"];
-  }
- 
-  shouldRead = 0;
 }
