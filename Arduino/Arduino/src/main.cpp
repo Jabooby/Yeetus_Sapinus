@@ -5,9 +5,11 @@
 
 //CONSTANTES globales
 const int posHome = 0;
-const int posBac = 400;
+const int posBac = 1070; //1080
 const int hysX = 10; // Hysteresis du deplacement X
 const int hysQ = 7;  // Hysteresis de langle
+const int goalQ = 58;
+const double TIMEOUT_DELAY = 1600;
 
 //var globales
 double SpeedX = 0;
@@ -19,6 +21,7 @@ bool setup_angle = false;
 double offset_angle = 0;
 unsigned long delais_communication = 0;
 
+
 //variables qui sont reçues
 char state[10] = "Stop"; // ="start" ou ="stop"
  
@@ -29,9 +32,15 @@ unsigned long temps_print = 0;
 bool caseFirstScan = true;
 unsigned long caseStartTime[20];
 int caseActif = 21;
-//Timer pour case stabiisation
-unsigned long temps_stabilisation = 0;
+int caseAttente = 21;
+int caseDepart = 9;
 
+//Timer pour case stabiisation
+  unsigned long temps_stabilisation = 0;
+//timer calcul moyenne angle
+  unsigned long temps_calcul_moyenne;
+  double moyenne; 
+  int nb_calcul_moyenne;
 
 // Fonctions pour le PID
 double PIDmeasurement();
@@ -73,7 +82,13 @@ void setup() {
   // initCommunication();
   
   // Initialisation du arduinoX 
-  AX_->init();                    
+  AX_->init();    
+
+  Moteur_Elevation->MAX_MOTOR_SPEED = 1;
+  Moteur_Elevation->MIN_MOTOR_SPEED = -1;
+
+  Moteur_Deplacement->MAX_MOTOR_SPEED = 0.7;  
+  Moteur_Deplacement->MIN_MOTOR_SPEED = -0.5;  
 
   Moteur_Elevation->resetEncodeur();
   Moteur_Deplacement->resetEncodeur();
@@ -90,33 +105,35 @@ void setup() {
   pidY_->setPeriod(10);
 
 
-  pidX_->setGains(0.005, 0.00,  0.0); // CAD 30 jullet initial 0.005, 0.000,  0.0
+  pidX_->setGains(0.008, 0.00,  0.0); // CAD 30 jullet initial 0.005, 0.000,  0.0
   pidX_->setMeasurementFunc(getPositionX);
   pidX_->setCommandFunc(uptadeX);
   pidX_->setAtGoalFunc(PIDXgoalReached);
-  pidX_->setEpsilon(10);
+  pidX_->setEpsilon(hysX);
   pidX_->setPeriod(10);
 
   pidQ_->setGains(0.015, 0,  0);
   pidQ_->setMeasurementFunc(GetAngle);
   pidQ_->setCommandFunc(uptadeQ);
   pidQ_->setAtGoalFunc(PIDQgoalReached);
-  pidQ_->setEpsilon(7);
+  pidQ_->setEpsilon(hysQ);
   pidQ_->setPeriod(10);
 
   gripper->depot();
 
+  // truc de comm
   while(strcmp(state, "Start") != 0)
   {
     time = millis();
-    readMsg();
+
     // envoie donnee de temps en temps 
     if ( time > (delais_communication + 100)){
       communicate();
       delais_communication = time;
     }
   }
-  caseActif = 22;
+
+  caseActif = caseDepart;
 
 }
 
@@ -125,8 +142,136 @@ void loop() {
   time = millis();
   switch (caseActif)
   {
-
   // Sequence principal 
+
+  case 9:
+    // Case pour que get la valeur de offset du potentiometre
+
+    if (caseFirstScan){
+      caseFirstScan = false;
+      // Serial.print("case 10, lève et attends dêtre loader et ferme pince\n");
+
+      // Enregistre la valeur de temps lors de l'entree dans le case
+      caseStartTime[caseActif] = time;
+
+      // TEST reset encodeur delevation 
+      Moteur_Elevation->resetEncodeur();
+
+      // Update les valeurs de PID
+      pidY_->setGoal(goalQ);
+      pidQ_->setGoal(0);
+      pidX_->setGoal(posHome);    
+
+
+      //enable les PID 
+      pidX_->disable();
+      pidY_->enable();
+      pidQ_->disable();
+
+      //temps pour calcul de la moyenne 
+      temps_calcul_moyenne = time;
+      moyenne = 0;
+      nb_calcul_moyenne = 0;
+
+      // securite, Make sure que la pince est ouverte
+      gripper->depot();
+    }
+
+    
+    // Attente que le pidy_ soit en position 
+    if (time - caseStartTime[caseActif] > 1000 && !setup_angle)
+    {
+      // calcul la moyenne des valeurs pendant un temps :
+      if ( time - caseStartTime[caseActif] > temps_calcul_moyenne + 100){
+        moyenne = moyenne * nb_calcul_moyenne;
+        nb_calcul_moyenne ++;
+        moyenne = (moyenne + GetAngle()) / nb_calcul_moyenne; 
+
+        //engirestre le nouveau temps
+        temps_calcul_moyenne = (time - caseStartTime[caseActif]) ;
+      }
+    }
+    
+
+  // une fois que 10 valeurs on ete enregistrer onajoute le offset et end
+    if ( (time - caseStartTime[caseActif]) > 2000) {
+      if(!setup_angle)
+      {
+        setup_angle = true;
+
+        offset_angle = 0-moyenne;
+      }
+      // Reset encoder avant de commencer a bouger
+      Moteur_Deplacement->resetEncodeur();
+
+      // active le prochain case
+      caseFirstScan = true;
+      caseActif++;
+    }
+
+  break;
+
+//   case 9:
+//     //Utlise l'environnement a  son avantage
+
+//     // Enregistre la valeur de temps lors de l'entree dans le case
+//     if (caseFirstScan){
+//       caseFirstScan = false; 
+
+//       // Serial.print("case 9, utilisation de l<environnement \n");
+
+//       caseStartTime[caseActif] = time;
+
+//       // Update les valeurs de PID
+//       pidY_->setGoal(goalQ);
+//       pidQ_->setGoal(0);
+//       pidX_->setGoal(-400); 
+
+//       //enable les PID
+//       pidX_->enable();
+//         XEnable = true;
+//       pidY_->enable();
+//       pidQ_->disable();
+
+//       //temps pour calcul de la moyenne 
+//       temps_calcul_moyenne = time;
+//       moyenne = 0;
+//       nb_calcul_moyenne = 0;
+//     }
+
+//     // Deplacement
+//  // Attente que le pidy_ soit en position 
+//     if (time - caseStartTime[caseActif] > 1000 && !setup_angle)
+//     {
+//       // calcul la moyenne des valeurs pendant un temps :
+//       if ( time - caseStartTime[caseActif] > temps_calcul_moyenne + 100){
+//         moyenne = moyenne * nb_calcul_moyenne;
+//         nb_calcul_moyenne ++;
+//         moyenne = (moyenne + GetAngle()) / nb_calcul_moyenne; 
+
+//         //engirestre le nouveau temps
+//         temps_calcul_moyenne = (time - caseStartTime[caseActif]) ;
+
+//       }
+//     }
+
+
+//     //rendu a home
+//     if ((((time - caseStartTime[caseActif]) > 3000 && pidX_->isAtGoal())) || time - caseStartTime[caseActif] > 5000){
+//       // Serial.print(" position X ");
+//       // Serial.println(getPositionX());
+//       //Moteur_Deplacement->resetEncodeur();
+//       // Reset encodeurs pour reinit la position home 
+//       Moteur_Deplacement->resetEncodeur();
+      
+
+//       // active le prochain case
+//       caseFirstScan = true;
+//       caseActif++;
+//     }
+
+//   break;
+
   case 10:
     // Case depart pour le robot, lève et attends dêtre loader
     
@@ -136,9 +281,9 @@ void loop() {
 
       // Enregistre la valeur de temps lors de l'entree dans le case
       caseStartTime[caseActif] = time;
-
+      
       // Update les valeurs de PID
-      pidY_->setGoal(40);
+      pidY_->setGoal(goalQ);
       pidQ_->setGoal(0);
       pidX_->setGoal(posHome);    
 
@@ -146,32 +291,22 @@ void loop() {
       pidX_->enable();
         XEnable = true;
       pidY_->enable();
-      pidQ_->enable();
-        QEnable = true;
+      pidQ_->disable();
 
       // securite, Make sure que la pince est ouverte
       gripper->depot();
     }
 
-    
 
-    // Attente que le pidy_ soit en position 
-
-    if ( (time - caseStartTime[caseActif]) > 1000) {
-
-      if(!setup_angle)
-      {
-        setup_angle = true;
-
-        offset_angle = 0-GetAngle();
-      }
-
+    // attends 1s avant de prendre la sapin pour laisser le temps de placer sapin
+    if ( (time - caseStartTime[caseActif]) > 0) {
       // prend les sapins 
       gripper->prendre();
     }
-
-    if ( (time - caseStartTime[caseActif]) > 1500) {
       
+    
+    //attends que le servo soit bien fermer
+    if ( (time - caseStartTime[caseActif]) > 200) {
       
       // active le prochain case
       caseFirstScan = true;
@@ -193,7 +328,7 @@ void loop() {
       caseStartTime[caseActif] = time;
       
       // Update les valeurs de PID
-      pidY_->setGoal(40);
+      pidY_->setGoal(goalQ);
       pidQ_->setGoal(0);
       pidX_->setGoal(posBac);
 
@@ -228,7 +363,7 @@ void loop() {
       caseStartTime[caseActif] = time;
 
       // Update les valeurs de PID
-      pidY_->setGoal(40);
+      pidY_->setGoal(goalQ);
       pidQ_->setGoal(0);
       pidX_->setGoal(posBac);
 
@@ -260,7 +395,7 @@ void loop() {
     }
 
     // check pos
-    if( (fabs(getPositionX()) > posBac+hysX || fabs(getPositionX()) < posBac-hysX )  && !XEnable)
+    if( (getPositionX() > posBac+hysX || getPositionX() < posBac-hysX )  && !XEnable)
     {
       pidX_->enable();
       XEnable = true;
@@ -289,13 +424,13 @@ void loop() {
       // Serial.println(time - caseStartTime[caseActif]);
       
 
-    //   temps_print = (time - caseStartTime[caseActif] + 1000);
+      temps_print = (time - caseStartTime[caseActif] + 1000);
 
     // }
 
-
+    
     //quand les deux PID on atteint leurs but et ca fait plus que X temps quon ait dans le case on switch
-    if ( ( (time - caseStartTime[caseActif]) > temps_stabilisation + 1000) && pidX_->isAtGoal() && pidQ_->isAtGoal() ){
+    if ( (( (time - caseStartTime[caseActif]) > temps_stabilisation + 1000) && pidX_->isAtGoal() && pidQ_->isAtGoal() ) || ((time - caseStartTime[caseActif]) > TIMEOUT_DELAY) ){
     
       // Serial.print(" position X ");
       // Serial.println(getPositionX());
@@ -346,7 +481,7 @@ void loop() {
       caseStartTime[caseActif] = time;
 
       // Update les valeurs de PID
-      pidY_->setGoal(40);
+      pidY_->setGoal(goalQ);
       pidQ_->setGoal(0);
       pidX_->setGoal(posHome);
 
@@ -361,6 +496,9 @@ void loop() {
 
     //rendu a home
     if (pidX_->isAtGoal()){
+      // Reset encodeurs pour reinit la position home 
+      // Moteur_Deplacement->resetEncodeur();
+
       // active le prochain case
       caseFirstScan = true;
       caseActif++;
@@ -381,7 +519,7 @@ void loop() {
       caseStartTime[caseActif] = time;
 
       // Update les valeurs de PID
-      pidY_->setGoal(40);
+      pidY_->setGoal(goalQ);
       pidQ_->setGoal(0);
       pidX_->setGoal(posHome);
 
@@ -412,7 +550,7 @@ void loop() {
     }
 
     // check pos
-    if( (fabs(getPositionX()) > posHome+hysX || fabs(getPositionX()) < posHome-hysX )  && !XEnable)
+    if( ((getPositionX()) > posHome+hysX || (getPositionX()) < posHome-hysX )  && !XEnable)
     {
       pidX_->enable();
       XEnable = true;
@@ -444,12 +582,59 @@ void loop() {
     // }
 
     //quand les deux PID on atteint leurs but et ca fait plus que X temps quon ait dans le case on switch
-    if ( ( (time - caseStartTime[caseActif]) > temps_stabilisation + 1000) && pidX_->isAtGoal() && pidQ_->isAtGoal() ){
-      // Serial.print(" position X ");
+    if (( ( (time - caseStartTime[caseActif]) > temps_stabilisation + 800) && pidX_->isAtGoal() && pidQ_->isAtGoal() ) ||  ((time - caseStartTime[caseActif]) > TIMEOUT_DELAY)){
+      // Serial.print(" positison X ");
       // Serial.println(getPositionX());
 
       // Serial.print(" Angle Q ");
       // Serial.println(GetAngle());
+      
+      //debug
+      pidQ_->disable();
+
+      // reset encodeur pour voir si le fait qui avance est le probleme
+      Moteur_Deplacement->resetEncodeur();
+
+      // active le prochain case
+      caseFirstScan = true;
+      caseActif++;
+    }
+
+  break;
+
+   case 16:
+    // reviens au depart encore pour etre sur que stabilisation a pas tout casser
+
+    // Enregistre la valeur de temps lors de l'entree dans le case
+    if (caseFirstScan){
+      caseFirstScan = false; 
+
+      // Serial.print("case 16, reviens au depart \n");
+
+      caseStartTime[caseActif] = time;
+
+      // Update les valeurs de PID
+      pidY_->setGoal(goalQ);
+      pidQ_->setGoal(0);
+      pidX_->setGoal(-100); //-15
+
+      //enable les PID
+      pidX_->enable();
+        XEnable = true;
+      pidY_->enable();
+      pidQ_->disable();
+    }
+
+    // Deplacement
+
+    //rendu a home
+    if ( (time - caseStartTime[caseActif]) > 400){
+      pidX_->disable();
+      // Serial.print(" position X ");
+      // Serial.println(getPositionX());
+      //Moteur_Deplacement->resetEncodeur();
+      // Reset encodeurs pour reinit la position home 
+      Moteur_Deplacement->resetEncodeur();
 
       // active le prochain case
       caseFirstScan = true;
@@ -457,6 +642,22 @@ void loop() {
     }
 
   break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
  /////////////////////// DEBUG ////////////////////
   case 20:
   
@@ -479,21 +680,25 @@ void loop() {
   break;
 
   case 21:
-    // case vide pour test de comm
-    pidX_->disable();
+    if (pidX_->isAtGoal()){
+         pidX_->disable();
+         Moteur_Deplacement->resetEncodeur();
+         }
+    // Case d'attente
+
     pidY_->disable();
-    pidQ_->disable();
-    SpeedX = 0;
-    SpeedQ = 0;
-    QEnable = false;
-    XEnable = false;
-    setup_angle = false;
-    offset_angle = 0;
-    Moteur_Elevation->resetEncodeur();
-    Moteur_Deplacement->resetEncodeur();
+    pidQ_->enable();
+    pidQ_->setGoal(0);
+
+    // ajout pince
+    gripper->depot();
+  
+   
+    //Moteur_Elevation->resetEncodeur();
+    
     if(strcmp(state, "Start") == 0)
     {
-      caseActif = 22; //à mettre n'importe quel case pour redémarrer le tout
+      caseActif = caseDepart; 
     }
   break;
 
@@ -506,100 +711,6 @@ void loop() {
   ///////////////////////////////////////////////////////////
   //                  cases de test
   //////////////////////////////////////////////////////////
-  
-  case 1:
-    Serial.print("\n ---- TEST PINCE -----\n");
-    Serial.print("close\n");
-    gripper->prendre();
-    delay(1000);
-    gripper->depot();
-    Serial.print("open\n");
-    delay(1000);
-  break;
-
-  case 2:
-    Serial.print("\n ---- TEST DEPLACEMENT-----\n");
-    Moteur_Deplacement->setSpeed(0.0);
-    delay(500);
-    Moteur_Deplacement->setSpeed(0.4);
-    delay(2000);
-    Moteur_Deplacement->setSpeed(-0.4);
-    delay(2000);
-    Moteur_Deplacement->setSpeed(0.0);
-    delay(500);
-    break;
-
-  case 3:
-    Serial.print("\n ---- TEST ELEVATION-----\n");
-    gripper->prendre();
-    Moteur_Elevation->setSpeed(-1);
-    delay(1000);
-    Moteur_Elevation->setSpeed(0.1);
-    delay(1000);
-    Moteur_Elevation->setSpeed(0.0);
-    break;
-  
-  //test PID elevation
-  case 4:
-     Serial.print("\n ---- TEST PID  DEPLACEMENT-----\n");
-    
-     pidX_->setGoal(100); 
-    
-    break;
-  
-  case 5:
-    //Serial.print("\n ---- JE SUIS DANS CASE 5-----\n");
-    //Serial.print("\n ---- TEST PID  DEPLACEMENT-----\n");
-
-    pidX_->setGoal(500);
-    pidY_->setGoal(40);  
-
-    gripper->prendre();
-  
-    break;
-
-  case 6:
-    //Serial.print("\n ---- JE SUIS DANS CASE 6-----\n");
-    
-    pidX_->setGoal(0);
-    pidY_->setGoal(40); 
-    gripper->depot();
-
-    break;
-
-
-  case 7:
-    Serial.print("\n ---- JE SUIS DANS CASE 7-----\n");
-    
-    pidY_->setGoal(40);
-    pidQ_->setGoal(0);
-    pidX_->setGoal(0);
-
-
-    if(fabs(Pendule_->getAngle()) > 5 && !QEnable)
-    {
-      pidQ_->enable();
-      QEnable = true;
-    }
-
-    if(fabs(getPositionX()) > 10 && !XEnable)
-    {
-      pidX_->enable();
-      XEnable = true;
-    }
-
-    break;
-
-  case 8:
-    Serial.print("\n ---- JE SUIS DANS CASE 8-----\n");
-
-    Serial.print(GetAngle());
-
-    Serial.print("\n");
-
-    delay(1000);
-
-  break;
 
 
   case 101:
@@ -696,8 +807,10 @@ void loop() {
   }
   if(strcmp(state, "Start") != 0)
   {
-    caseActif = 21;
+    pidX_->setGoal(0);
+    caseActif = caseAttente;
   }
+
 }
 
 
@@ -790,7 +903,7 @@ double getPositionX()
 {
     int tmpPulse;
     float tmpDistance;
-    float diametreRoue = 60;
+    float diametreRoue = 63;
     int nbPulseTour = 64*19;
     float distancePulse;
 

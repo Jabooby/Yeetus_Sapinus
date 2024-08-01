@@ -8,8 +8,6 @@
 #define GAUCHE 0
 #define DROITE 1
 
-#define MAX_MOTOR_SPEED 1
-#define MIN_MOTOR_SPEED -1
 
 //#include <main_header.h>
 
@@ -52,10 +50,15 @@ class Moteur
 	int getPulse();
 	void resetEncodeur();
 	
+	double MIN_MOTOR_SPEED = 0;
+	double MAX_MOTOR_SPEED = 0;
+
 	private:
 
     ArduinoX* ptrAdruino;
 	uint8_t ID;
+
+	
 };
 
 

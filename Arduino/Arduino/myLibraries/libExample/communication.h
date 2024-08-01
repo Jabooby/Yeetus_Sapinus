@@ -3,6 +3,8 @@
 
 #include <ArduinoJson.h>
 
+void communicate();
+
 void sendMsg();
 
 void readMsg();
